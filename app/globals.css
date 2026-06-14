@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-ink-950 text-slate-200 antialiased;
+}
+
+/* Scrollbar sutil para el tema oscuro */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2f3f;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a4154;
+}
+
+/* ===========================================================================
+   Estilos de impresión / Export a PDF
+   Pasa el reporte (tema oscuro en pantalla) a un tema claro legible en papel,
+   conservando los colores de score. El panel de cada módulo se renderiza con
+   print:block, así el PDF incluye TODOS los checks aunque estén colapsados.
+   =========================================================================== */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  /* Conservar fondos y colores de score al imprimir. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+  }
+
+  html {
+    color-scheme: light;
+  }
+  html,
+  body {
+    background: #ffffff !important;
+  }
+  body {
+    color: #0f1117 !important;
+  }
+
+  /* Fondos oscuros -> claros */
+  .bg-ink-950,
+  .bg-ink-900\/60,
+  .bg-ink-900\/40,
+  .bg-ink-800,
+  .bg-ink-800\/40,
+  .bg-ink-800\/50,
+  .bg-ink-800\/60,
+  .bg-ink-700,
+  .bg-ink-700\/30,
+  .bg-ink-700\/60 {
+    background: #ffffff !important;
+  }
+
+  /* Cards con un fondo apenas gris y borde para diferenciarlas en papel. */
+  .rounded-2xl,
+  .rounded-3xl {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+  }
+  .border-ink-700,
+  .border-ink-700\/60 {
+    border-color: #cbd5e1 !important;
+  }
+
+  /* Texto legible en claro */
+  .text-white,
+  .text-slate-100,
+  .text-slate-200,
+  .text-slate-300 {
+    color: #0f1117 !important;
+  }
+  .text-slate-400,
+  .text-slate-500,
+  .text-slate-600 {
+    color: #475569 !important;
+  }
+
+  /* Colores de score: versiones más oscuras para contraste sobre blanco. */
+  .text-emerald-400 {
+    color: #059669 !important;
+  }
+  .text-amber-400,
+  .text-amber-300,
+  .text-amber-300\/90 {
+    color: #b45309 !important;
+  }
+  .text-red-400,
+  .text-red-300 {
+    color: #b91c1c !important;
+  }
+
+  /* No partir bloques entre páginas. */
+  section,
+  li,
+  .rounded-2xl,
+  .rounded-3xl {
+    break-inside: avoid;
+  }
+
+  /* Sin scrollbars ni animaciones en papel. */
+  *::-webkit-scrollbar {
+    display: none;
+  }
+}
