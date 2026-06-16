@@ -1,6 +1,6 @@
 # WebAudit
 
-Auditoría web automática: ingresás una URL y la app corre **5 módulos en paralelo** (SEO, Rendimiento, Accesibilidad, Seguridad y Código) y devuelve un reporte con puntaje, recomendaciones accionables y comparación con auditorías anteriores.
+Auditoría web automática: ingresás una URL y la app corre **5 módulos en paralelo** (SEO, Rendimiento, Accesibilidad, Seguridad y Código) y devuelve un reporte con puntaje y recomendaciones accionables.
 
 > Pensada para uso directo: pegás una URL y obtenés el reporte al instante. Sin cuentas ni base de datos — los reportes son efímeros.
 
