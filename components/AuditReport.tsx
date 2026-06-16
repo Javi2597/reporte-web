@@ -1,17 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import {
-  AuditRow,
-  AuditScores,
-  ModuleKey,
-  MODULE_LABELS,
-} from "@/lib/types/audit";
-import {
-  collectQuickWins,
-  computeDeltas,
-  summarizeChecks,
-} from "@/lib/utils/report";
+import { AuditResult, ModuleKey, MODULE_LABELS } from "@/lib/types/audit";
+import { collectQuickWins, summarizeChecks } from "@/lib/utils/report";
 import { ScoreRing } from "./ScoreRing";
 import { ModuleCard } from "./ModuleCard";
 
@@ -31,43 +21,15 @@ const IMPACT_BADGE = {
 
 const IMPACT_LABEL = { high: "Alto", medium: "Medio", low: "Bajo" } as const;
 
-/** Badge de variación vs auditoría anterior. */
-function DeltaBadge({ delta }: { delta: number | undefined }) {
-  if (delta === undefined || delta === 0) return null;
-  const up = delta > 0;
-  return (
-    <span
-      className={`ml-1 inline-flex items-center text-xs font-semibold ${
-        up ? "text-emerald-400" : "text-red-400"
-      }`}
-      title="Variación respecto a la auditoría anterior"
-    >
-      {up ? "▲" : "▼"}
-      {Math.abs(delta)}
-    </span>
-  );
-}
-
 export function AuditReport({
   audit,
-  previousScores = null,
+  onReset,
 }: {
-  audit: AuditRow;
-  previousScores?: AuditScores | null;
+  audit: AuditResult;
+  onReset: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
   const results = audit.results;
   const overall = audit.scores?.overall ?? 0;
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard no disponible */
-    }
-  }
 
   if (audit.status === "failed" || !results) {
     return (
@@ -78,17 +40,16 @@ export function AuditReport({
           <span className="text-slate-200">{audit.url}</span>. Puede que el sitio
           no sea accesible públicamente o haya tardado demasiado.
         </p>
-        <a
-          href="/"
+        <button
+          onClick={onReset}
           className="mt-6 inline-block rounded-lg bg-emerald-500 px-5 py-2.5 font-semibold text-ink-950 hover:bg-emerald-400"
         >
           Probar otra URL
-        </a>
+        </button>
       </div>
     );
   }
 
-  const deltas = audit.scores ? computeDeltas(audit.scores, previousScores) : null;
   const summary = summarizeChecks(results);
   const quickWins = collectQuickWins(results, 6);
 
@@ -96,16 +57,13 @@ export function AuditReport({
     <main className="mx-auto max-w-4xl px-4 py-10 print:py-2">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <a href="/" className="text-sm text-slate-400 hover:text-slate-200">
-          ← WebAudit
-        </a>
+        <button
+          onClick={onReset}
+          className="text-sm text-slate-400 hover:text-slate-200 print:hidden"
+        >
+          ← Nueva auditoría
+        </button>
         <div className="flex gap-2 print:hidden">
-          <button
-            onClick={copyLink}
-            className="rounded-lg border border-ink-700 bg-ink-800 px-4 py-2 text-sm text-slate-200 hover:bg-ink-700"
-          >
-            {copied ? "¡Copiado!" : "Copiar link"}
-          </button>
           <button
             onClick={() => window.print()}
             className="rounded-lg border border-ink-700 bg-ink-800 px-4 py-2 text-sm text-slate-200 hover:bg-ink-700"
@@ -119,11 +77,6 @@ export function AuditReport({
       <section className="mt-8 flex flex-col items-center gap-4 rounded-3xl border border-ink-700 bg-ink-800/40 p-8 sm:flex-row sm:gap-10">
         <div className="flex flex-col items-center">
           <ScoreRing score={overall} label="General" />
-          {deltas?.overall !== undefined && deltas.overall !== 0 && (
-            <span className="mt-1 text-xs text-slate-400">
-              vs. anterior <DeltaBadge delta={deltas.overall} />
-            </span>
-          )}
         </div>
         <div className="min-w-0 flex-1 text-center sm:text-left">
           <h1 className="truncate text-2xl font-bold text-white">
@@ -144,7 +97,6 @@ export function AuditReport({
                 <span className="font-semibold text-slate-100">
                   {audit.scores?.[k] ?? "—"}
                 </span>
-                <DeltaBadge delta={deltas?.[k]} />
               </div>
             ))}
           </div>

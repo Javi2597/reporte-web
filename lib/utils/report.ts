@@ -1,7 +1,6 @@
 import {
   AuditCheck,
   AuditResults,
-  AuditScores,
   CheckImpact,
   CheckStatus,
   ModuleKey,
@@ -101,27 +100,4 @@ export function collectQuickWins(
   }
 
   return wins.sort((a, b) => b.priority - a.priority).slice(0, limit);
-}
-
-// ----------------------------------------------------------------------------
-// #4 · Deltas vs auditoría anterior
-// ----------------------------------------------------------------------------
-
-export type ScoreDeltas = Partial<Record<keyof AuditScores, number>>;
-
-/**
- * Calcula la diferencia de cada score contra una auditoría previa.
- * Devuelve null si no hay scores previos.
- */
-export function computeDeltas(
-  current: AuditScores,
-  previous: AuditScores | null | undefined,
-): ScoreDeltas | null {
-  if (!previous) return null;
-  const keys = Object.keys(current) as (keyof AuditScores)[];
-  const deltas: ScoreDeltas = {};
-  for (const k of keys) {
-    deltas[k] = current[k] - previous[k];
-  }
-  return deltas;
 }

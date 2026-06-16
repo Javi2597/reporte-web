@@ -3,7 +3,7 @@
  *
  * Corre runAudit() contra una URL real e imprime el progreso por módulo en
  * vivo (en el orden real en que terminan), seguido del resumen de scores y los
- * principales hallazgos. No necesita Supabase: solo internet y, para
+ * principales hallazgos. Solo necesita internet y, para
  * Performance/Accesibilidad, la GOOGLE_PAGESPEED_API_KEY de .env.local.
  *
  * Uso:

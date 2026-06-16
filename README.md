@@ -2,9 +2,9 @@
 
 Auditoría web automática: ingresás una URL y la app corre **5 módulos en paralelo** (SEO, Rendimiento, Accesibilidad, Seguridad y Código) y devuelve un reporte con puntaje, recomendaciones accionables y comparación con auditorías anteriores.
 
-> Pensada primero para uso interno de agencia (auditar sitios de clientes) y luego como SaaS público.
+> Pensada para uso directo: pegás una URL y obtenés el reporte al instante. Sin cuentas ni base de datos — los reportes son efímeros.
 
-**Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase (auth + base de datos).
+**Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS.
 
 ---
 
@@ -17,12 +17,11 @@ Auditoría web automática: ingresás una URL y la app corre **5 módulos en par
   - **Seguridad** (headers HTTP): HTTPS, certificado, HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, contenido mixto.
   - **Código** (cheerio): DOCTYPE, lang, viewport, charset, defer/async, dimensiones de imágenes, links internos rotos.
 - **Score general** ponderado: SEO 25% · Rendimiento 30% · Accesibilidad 20% · Seguridad 15% · Código 10%.
-- **Auditoría asíncrona con polling**: el reporte se genera en segundo plano y la UI muestra el **progreso real por módulo** en vivo.
-- **Quick wins** priorizados por impacto, resumen de verificaciones y **tendencias** (delta vs. la auditoría anterior de la misma URL).
+- **Auditoría síncrona**: pegás la URL, esperás unos segundos y la misma respuesta trae el reporte completo. Sin persistencia.
+- **Quick wins** priorizados por impacto y resumen de verificaciones.
 - **Glosario desplegable** en español para términos técnicos (LCP, CSP, CLS, etc.).
 - **Reporte 100% en español** (incluye los textos de Lighthouse vía `locale=es`).
 - **Export a PDF** con un clic (impresión del navegador con estilos optimizados).
-- **Auth con Supabase** (email/contraseña), historial en el dashboard, y rate limiting para uso anónimo.
 
 ---
 
@@ -30,7 +29,6 @@ Auditoría web automática: ingresás una URL y la app corre **5 módulos en par
 
 - **Node.js** 18.18+ (recomendado 20+).
 - **pnpm** 9+ (`npm i -g pnpm`).
-- Una cuenta de **Supabase** (plan gratuito alcanza).
 - Una **API key de Google PageSpeed Insights** (gratuita).
 
 ---
@@ -45,17 +43,11 @@ cd auditoria
 pnpm install
 ```
 
-### 2. Crear el proyecto en Supabase
-
-1. Creá un proyecto en [supabase.com](https://supabase.com).
-2. En **SQL Editor → New query**, pegá y ejecutá todo el contenido de [`supabase/schema.sql`](supabase/schema.sql). Crea la tabla `audits`, el enum de estado, la columna `progress`, la función `set_audit_progress()`, la tabla de rate limit y las policies de RLS. Es idempotente: lo podés volver a correr sin romper nada.
-3. (Recomendado para uso interno) En **Authentication → Sign In / Providers → Email**, desactivá **"Confirm email"** para que el registro deje la sesión iniciada al instante sin pasar por el correo.
-
-### 3. Conseguir la API key de PageSpeed
+### 2. Conseguir la API key de PageSpeed
 
 Seguí [esta guía](https://developers.google.com/speed/docs/insights/v5/get-started) (habilitá "PageSpeed Insights API" en Google Cloud). Sin la key, los módulos de Rendimiento y Accesibilidad quedan sin datos; los otros 3 funcionan igual.
 
-### 4. Variables de entorno
+### 3. Variables de entorno
 
 Copiá el ejemplo y completá los valores:
 
@@ -64,22 +56,11 @@ cp .env.local.example .env.local
 ```
 
 ```env
-# Supabase → Settings → API
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co     # Project URL (¡no la publishable key!)
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...                   # anon public
-SUPABASE_SERVICE_ROLE_KEY=eyJ...                       # service_role (SECRETA, solo server)
-
 # Google PageSpeed Insights
 GOOGLE_PAGESPEED_API_KEY=AIza...
-
-# URL pública de la app (sin trailing slash)
-NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-> ⚠️ `SUPABASE_SERVICE_ROLE_KEY` bypassa la seguridad (RLS). Va **solo** en `.env.local` (gitignored) y nunca en código del cliente.
-> Error común: pegar la *publishable key* (`sb_publishable_...`) en `NEXT_PUBLIC_SUPABASE_URL`. Ese campo va la **Project URL** (`https://<ref>.supabase.co`).
-
-### 5. Correr
+### 4. Correr
 
 ```bash
 pnpm dev          # http://localhost:3000
@@ -95,13 +76,11 @@ pnpm dev          # http://localhost:3000
 | `pnpm build` | Build de producción. |
 | `pnpm start` | Sirve el build. |
 | `pnpm typecheck` | `tsc --noEmit`. |
-| `pnpm audit:url <url>` | Corre el motor de auditoría contra una URL e imprime el progreso y los hallazgos en consola (no necesita Supabase). |
+| `pnpm audit:url <url>` | Corre el motor de auditoría contra una URL e imprime el progreso y los hallazgos en consola. |
 
-Hay además scripts de utilidad en [`scripts/`](scripts/):
+Hay además un script de utilidad en [`scripts/`](scripts/):
 
 - `scripts/run-audit.ts` — el runner de `pnpm audit:url`.
-- `scripts/check-supabase.ts` — verifica la conexión a Supabase y que el schema esté aplicado.
-- `scripts/regen-audit.ts` — regenera/siembra una auditoría escribiendo directo en Supabase (saltea el rate limit; útil para dev).
 
 > **Nota sobre pnpm + esbuild:** pnpm puede bloquear el script de build de `esbuild` (dependencia de `tsx`) y, con eso, trabar `pnpm run`. Si te pasa, ejecutá una vez `pnpm approve-builds` (marcá `esbuild`). Mientras tanto, los scripts se pueden correr directo:
 > ```bash
@@ -114,37 +93,29 @@ Hay además scripts de utilidad en [`scripts/`](scripts/):
 
 ```
 app/
-├─ page.tsx                  Landing: input de URL + login + loading
-├─ audit/[id]/page.tsx       Reporte (server) → busca auditoría previa para el delta
-├─ dashboard/page.tsx        Historial (requiere auth) o formulario de login
+├─ page.tsx                  Landing: input de URL → corre la auditoría → muestra el reporte
 └─ api/
-   ├─ audit/route.ts         POST: rate limit → crea fila → corre en background (waitUntil)
-   └─ audit/[id]/route.ts    GET: una auditoría por id (para el polling)
+   └─ audit/route.ts         POST: corre la auditoría y devuelve el reporte completo
 
 lib/
 ├─ auditors/
-│  ├─ index.ts               Orquestador: fetch compartido + progreso por módulo + timeout
+│  ├─ index.ts               Orquestador: fetch compartido + timeout
 │  ├─ seo.ts · performance.ts · accessibility.ts · security.ts · code.ts
-├─ supabase/{client,server}.ts
 ├─ utils/{url,scoring,report}.ts
 ├─ glossary.ts               Diccionario de términos técnicos + matcher automático
-├─ rate-limit.ts
 └─ types/audit.ts            Tipos de toda la auditoría
 
-components/                  ScoreRing, ModuleCard, AuditReport, AuditPolling, AuthForm, AuthHeader…
-supabase/schema.sql          Schema + función RPC + RLS
-scripts/                     Utilidades de dev (audit:url, check-supabase, regen)
+components/                  ScoreRing, ModuleCard, AuditReport…
+scripts/                     Utilidad de dev (audit:url)
 ```
 
 ---
 
 ## Cómo funciona (decisiones de diseño)
 
-- **Auditoría asíncrona con polling.** El `POST /api/audit` crea la fila en estado `running`, dispara el trabajo en segundo plano con `waitUntil()` de `@vercel/functions` (Fluid Compute lo mantiene vivo tras responder) y devuelve el `id` al instante. El cliente navega a `/audit/[id]` y consulta el GET cada 1.5 s hasta que termina. En local hay un fallback fire-and-forget. Para escala grande, el siguiente paso es una cola dedicada (Vercel Queues / QStash).
-- **Progreso real por módulo.** Cada módulo escribe su estado/score en la columna `progress` (jsonb) apenas termina, mediante la función `set_audit_progress()` que hace un merge atómico (evita races). SEO/Seguridad/Código dependen solo del HTML (rápidos); Rendimiento/Accesibilidad dependen de PageSpeed (más lentos).
+- **Auditoría síncrona.** El `POST /api/audit` corre los 5 módulos y devuelve el reporte completo en la misma respuesta. El motor tiene un timeout interno de 30 s y la función un `maxDuration` de 60 s. El resultado es efímero: vive en el estado del cliente, no se persiste. Para escala grande con historial, el siguiente paso sería reintroducir una cola + almacén (Vercel Queues / QStash + una DB).
 - **Accesibilidad sin Puppeteer.** El reporte de accesibilidad de Lighthouse ya está construido sobre axe-core, así que reutilizamos esos resultados en vez de correr Puppeteer + Chromium en serverless (pesado y frágil en Vercel).
 - **Fetch compartido.** El HTML se baja una vez (SEO/Seguridad/Código) y PageSpeed se llama una vez por estrategia (Rendimiento/Accesibilidad).
-- **Rate limiting.** 5 auditorías por hora por IP solo para usuarios **anónimos** (tabla `audit_rate_limit`). Los usuarios logueados no tienen límite. Configurable en `lib/rate-limit.ts`.
 - **Español.** Los textos propios están en español y a PageSpeed se le pide `locale=es` para que Lighthouse devuelva títulos y descripciones traducidos.
 
 ---
@@ -152,5 +123,4 @@ scripts/                     Utilidades de dev (audit:url, check-supabase, regen
 ## Notas de seguridad
 
 - `.env.local`, `.next/` y `node_modules/` están gitignoreados: las claves nunca se suben.
-- La `anon key` es pública por diseño (respeta RLS); la `service_role` es secreta y solo se usa en el server.
-- RLS está activado en `audits` con lectura pública por id (link compartible). Ajustá las policies en `supabase/schema.sql` si querés reportes privados.
+- La `GOOGLE_PAGESPEED_API_KEY` solo se usa en el server (la API route). No se expone al cliente.

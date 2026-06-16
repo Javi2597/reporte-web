@@ -9,7 +9,7 @@ export type ModuleKey =
   | "security"
   | "code";
 
-export type AuditStatus = "pending" | "running" | "completed" | "failed";
+export type AuditStatus = "completed" | "failed";
 
 /** Severidad/estado de cada check individual dentro de un módulo. */
 export type CheckStatus = "passed" | "warning" | "failed" | "info";
@@ -92,28 +92,12 @@ export interface AuditResults {
   };
 }
 
-/** Estado en vivo de un módulo mientras corre la auditoría. */
-export type ModuleProgressStatus = "pending" | "done" | "failed";
-
-export interface ModuleProgress {
-  status: ModuleProgressStatus;
-  /** Score del módulo una vez terminado (0 si falló). */
-  score: number;
-}
-
-/** Progreso por módulo; se va completando mientras la auditoría corre. */
-export type AuditProgress = Partial<Record<ModuleKey, ModuleProgress>>;
-
-/** Fila de la tabla `audits` en Supabase. */
-export interface AuditRow {
-  id: string;
+/** Resultado de una auditoría que devuelve el API y consume el reporte. */
+export interface AuditResult {
   url: string;
   status: AuditStatus;
   scores: AuditScores | null;
   results: AuditResults | null;
-  progress: AuditProgress | null;
-  created_at: string;
-  user_id: string | null;
 }
 
 // ----------------------------------------------------------------------------

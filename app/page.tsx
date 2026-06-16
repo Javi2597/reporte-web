@@ -1,14 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { AuthHeader } from "@/components/AuthHeader";
+import { AuditResult } from "@/lib/types/audit";
+import { AuditReport } from "@/components/AuditReport";
 
 export default function Home() {
-  const router = useRouter();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<AuditResult | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,22 +27,27 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error ?? "Error al iniciar la auditoría.");
+        throw new Error(data.error ?? "Error al correr la auditoría.");
       }
-      // El POST responde al instante con el id; la página de resultados
-      // muestra el progreso por polling hasta que termine.
-      router.push(`/audit/${data.id}`);
+      // El POST corre la auditoría completa y devuelve el reporte.
+      setResult(data as AuditResult);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
+    } finally {
       setLoading(false);
     }
+  }
+
+  if (result) {
+    return (
+      <AuditReport audit={result} onReset={() => setResult(null)} />
+    );
   }
 
   return (
     <main className="relative mx-auto flex min-h-screen max-w-3xl flex-col items-center justify-center px-4 py-16">
       <header className="absolute inset-x-0 top-0 flex items-center justify-between px-4 py-4 sm:px-6">
         <span className="text-sm font-semibold text-slate-300">WebAudit</span>
-        <AuthHeader />
       </header>
 
       <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-ink-700 bg-ink-800/60 px-4 py-1 text-xs text-slate-400">
@@ -75,7 +80,7 @@ export default function Home() {
             disabled={loading}
             className="rounded-xl bg-emerald-500 px-8 py-4 text-lg font-semibold text-ink-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Iniciando…" : "Auditar"}
+            {loading ? "Analizando…" : "Auditar"}
           </button>
         </div>
         {error && (
@@ -85,12 +90,11 @@ export default function Home() {
         )}
       </form>
 
-      <a
-        href="/dashboard"
-        className="mt-10 text-sm text-slate-500 transition hover:text-slate-300"
-      >
-        Ver historial de auditorías →
-      </a>
+      {loading && (
+        <p className="mt-8 text-sm text-slate-500">
+          Analizando el sitio… suele tardar entre 10 y 30 segundos.
+        </p>
+      )}
     </main>
   );
 }
